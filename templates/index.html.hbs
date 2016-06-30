@@ -1,0 +1,15 @@
+<h1>Index</h1>
+<h2>Agent</h2>
+<ul>
+    <li>Name: {{ agent.getName}}</li>
+    <li>Port: {{ agent.getPort}}</li>
+</ul>
+    
+<h2>Checks</h2>
+<ul>
+    {{#each agent.getChecks }}
+    <li>
+        <a href="/?controller=check&amp;checkName={{getName}}">{{getName}}</a>
+    </li>
+    {{/each}}
+</ul>

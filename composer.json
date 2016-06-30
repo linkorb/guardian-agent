@@ -1,0 +1,33 @@
+{
+    "name": "linkorb/guardian-agent",
+    "description": "Guardian agent",
+    "homepage": "http://www.github.com/linkorb/guardian-agent",
+    "keywords": ["php", "guardian", "monitoring", "agent", "sensor", "linkorb"],
+    "type": "library",
+    "authors": [
+        {
+            "name": "LinkORB Engineering",
+            "email": "engineering@linkorb.com",
+            "role": "Development"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.0",
+        "symfony/console": "~2.7",
+        "symfony/yaml": "~2.7",
+        "symfony/process": "~2.7",
+        "zordius/lightncandy": "dev-master",
+        "react/http": "0.3.*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^4.8",
+        "linkorb/autotune": "~1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Guardian\\Agent\\": "src/"
+        }
+    },
+    "bin": ["bin/guardian-agent"],
+    "license": "MIT"
+}

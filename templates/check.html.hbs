@@ -1,0 +1,18 @@
+<h1>Check</h1>
+<ul>
+    <li>Name: {{ check.getName}}</li>
+    <li>Command: {{ check.getCommand}}</li>
+    <li>Interval: {{ check.getInterval}}</li>
+    <li>Last: {{ check.getLastText}}</li>
+</ul>
+    
+<h2>Results</h2>
+<ul>
+    {{#each checkResults }}
+    <li>{{getStamp}}: <span class="badge">{{ getStatusCode}}</span> {{ getMessage }}<br />
+    {{#each getMeasurements }}
+    <i>{{getName}}={{getValue}}{{getUnit}}</i>
+    {{/each}}
+    </li>
+    {{/each}}
+</ul>

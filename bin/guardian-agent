@@ -1,0 +1,42 @@
+#!/usr/bin/env php
+<?php
+
+use Symfony\Component\Console\Application;
+
+$loader = null;
+$projectDir = null;
+
+if (substr(__DIR__, -33) == 'vendor/linkorb/guardian-agent/bin') {
+    // running as a dependency of a project (beneath vendor)
+    $loader = __DIR__ . '/../../../autoload.php';
+    $projectDir = __DIR__ . '/../../../..';
+} elseif (substr(__DIR__, -18) == 'guardian-agent/bin') {
+    // running as vigilant-php/vigilant/bin/vigilant (adjacent to vendor)
+    $loader = __DIR__ . '/../vendor/autoload.php';
+    $projectDir = __DIR__ . '/..';
+}
+
+if (!$loader || !file_exists($loader)) {
+    // Running as .phar file
+    $loader = __DIR__ . '/../autoload.php';
+    $projectDir = getcwd();
+}
+
+if (!file_exists($loader)) {
+    die(
+        'You must set up the project dependencies, run the following commands:' . PHP_EOL .
+        'curl -s http://getcomposer.org/installer | php' . PHP_EOL .
+        'php composer.phar install' . PHP_EOL
+    );
+}
+
+$autoLoader = require($loader);
+
+if (class_exists('AutoTune\Tuner')) {
+    \AutoTune\Tuner::init($autoLoader);
+}
+
+$application = new Application('Guardian Agent', '1.0.0');
+$application->setCatchExceptions(true);
+$application->add(new \Guardian\Agent\Command\RunCommand());
+$application->run();
