@@ -46,11 +46,10 @@ class YamlLoader
             $agent->setPort($agentData['port']);
         }
         
-        $checks = $this->loadChecks($data);
-        foreach ($checks as $check) {
-            $agent->addCheck($check);
-        }
-
+        $agent->setStompAddress($agentData['stomp']['address']);
+        $agent->setStompUsername($agentData['stomp']['username']);
+        $agent->setStompPassword($agentData['stomp']['password']);
+        
         return $agent;
     }
 

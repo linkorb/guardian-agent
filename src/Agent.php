@@ -34,6 +34,43 @@ class Agent
         return $this;
     }
     
+    protected $stompAddress;
+    public function getStompAddress()
+    {
+        return $this->stompAddress;
+    }
+    
+    public function setStompAddress($stompAddress)
+    {
+        $this->stompAddress = $stompAddress;
+        return $this;
+    }
+    
+    protected $stompUsername;
+    public function getStompUsername()
+    {
+        return $this->stompUsername;
+    }
+    
+    public function setStompUsername($stompUsername)
+    {
+        $this->stompUsername = $stompUsername;
+        return $this;
+    }
+    
+    protected $stompPassword;
+    public function getStompPassword()
+    {
+        return $this->stompPassword;
+    }
+    
+    public function setStompPassword($stompPassword)
+    {
+        $this->stompPassword = $stompPassword;
+        return $this;
+    }
+    
+    
     protected $groupNames = [];
     public function addGroupName($groupName)
     {
@@ -50,65 +87,40 @@ class Agent
         return isset($this->groupNames[$groupName]);
     }
     
-    protected $checks = [];
-    public function addCheck(Check $check)
-    {
-        if (!$check->getName()) {
-            throw new RuntimeException("Can't add a check without a name");
-        }
-        $this->checks[$check->getName()] = $check;
-    }
-    public function getChecks()
-    {
-        return $this->checks;
-    }
-    
-    public function getCheck($checkName)
-    {
-        return $this->checks[$checkName];
-    }
+    protected $lastStatus = 0;
     
     public function tick()
     {
-        foreach ($this->checks as $check) {
-            $now = time();
-            if ($now > ($check->getLastStamp() + $check->getInterval())) {
-                $checkResult = $this->runCheck($check);
-                if (!isset($this->checkResults[$check->getName()])) {
-                    $this->checkResults[$check->getName()] = [];
-                }
-                array_unshift($this->checkResults[$check->getName()], $checkResult);
-                $this->cleanupCheckResults($check->getName());
-                $check->setLastStamp($now);
-            }
+        // NOOP
+        if ($this->lastStatus < time() - 1) {
+            $this->lastStatus = time();
+            $this->sendStatus();
         }
-        
         $this->scheduleNextTick();
     }
     
-    public function cleanupCheckResults($checkName)
+    public function sendMessage($message)
     {
-        $res = [];
-        foreach ($this->checkResults[$checkName] as $key => $value) {
-            if ($value->getStamp()> (time()-20)) {
-                $res[] = $value;
-            }
-        }
-        $this->checkResults[$checkName] = $res;
+        print_r($message);
+        $this->stomp->send('/topic/monitor', json_encode($message));
     }
     
-    public function getCheckResultsByCheckName($checkName)
+    public function sendStatus()
     {
-        if (!isset($this->checkResults[$checkName])) {
-            return [];
-        }
-        return $this->checkResults[$checkName];
+        $message = [
+            'type' => 'status',
+            'from' => $this->getName(),
+            'payload' => [
+                'name' => $this->getName()
+            ]
+        ];
+        $this->sendMessage($message);
     }
     
-    public function runCheck(Check $check)
+    public function runCommand($command)
     {
-        //echo "Executing check " . $check->getName() . "\n";
-        $process = new Process($check->getCommand());
+        echo "Executing command: " . $command . "\n";
+        $process = new Process($command);
         $process->setTimeout(60);
         $process->run();
         $checkResult = NagiosUtils::parseCheckResult($process->getOutput());
@@ -127,9 +139,39 @@ class Agent
         );
     }
     
+    public function processMessage($message)
+    {
+        $data = json_decode($message, true);
+        if (!$data) {
+            echo "Invalid JSON: " . $message . "\n";
+            return;
+        }
+        switch ($data['type']) {
+            case 'check_request':
+                $requestId = $data['payload']['requestId'];
+                $command = $data['payload']['command'];
+                $checkResult = $this->runCommand($command);
+                $message = [
+                    'type' => 'check-response',
+                    'from' => $this->getName(),
+                    'payload' => [
+                        'requestId' => $requestId,
+                        'statusCode' => $checkResult->getStatusCode()
+                    ]
+                ];
+                $this->sendMessage($message);
+                
+                break;
+            default:
+                echo "Unsupported message type: " . $data['type'];
+                break;
+        }
+    }
+    
     protected $loop;
     protected $socket;
     protected $http;
+    protected $stomp;
     
     public function run()
     {
@@ -137,7 +179,22 @@ class Agent
         $this->socket = new \React\Socket\Server($this->loop);
         $this->http = new \React\Http\Server($this->socket, $this->loop);
         
+        // Setup stomp
+        $stompFactory = new \React\Stomp\Factory($this->loop);
+        $this->stomp = $stompFactory->createClient(
+            array(
+                'host' => $this->getStompAddress(),
+                'vhost' => '/',
+                'login' => $this->getStompUsername(),
+                'passcode' => $this->getStompPassword()
+            )
+        );
         
+        $this->stomp->connect();
+        $this->stomp->subscribe('/topic/agent:' . $this->getName(), function ($frame) {
+            $this->processMessage($frame->body);
+        });
+
         $requestHandler = new RequestHandler($this);
         $this->http->on('request', [$requestHandler, 'handle']);
         $this->socket->listen($this->getPort());

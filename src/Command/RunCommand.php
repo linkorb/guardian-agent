@@ -29,7 +29,7 @@ class RunCommand extends Command
         $agent = $loader->loadAgent($data);
         
         $output->writeln('Running Guardian Agent');
-        //print_r($agent);
+        print_r($agent);
         $agent->run();
     }
 }

@@ -3,12 +3,3 @@ agent:
     port: 8080
     groups: os, web
     
-checks:
-    check_load:
-        command: "check_load -w 1 -c 2"
-        interval: 3
-        hosts: web, app
-        
-    check_disk:
-        command: "check_disk -w 100 -c 200"
-        interval: 5
