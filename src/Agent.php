@@ -103,7 +103,7 @@ class Agent
     
     public function sendMessage($message)
     {
-        print_r($message);
+        //print_r($message);
         $this->stomp->send('/topic/monitor', json_encode($message));
     }
     
@@ -122,7 +122,7 @@ class Agent
     
     public function runCommand($command)
     {
-        echo "Executing command: " . $command . "\n";
+        //echo "Executing command: " . $command . "\n";
         $process = new Process($command);
         $process->setTimeout(60);
         $process->run();
