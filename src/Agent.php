@@ -86,7 +86,7 @@ class Agent
     
     public function hasGroupName($groupName)
     {
-        return isset($this->groupNames[$groupName]);
+        return in_array($groupName, $this->groupNames);
     }
     
     protected $lastStatus = 0;
