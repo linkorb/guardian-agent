@@ -74,7 +74,9 @@ class Agent
     protected $groupNames = [];
     public function addGroupName($groupName)
     {
-        $this->groupNames[$groupName] = $groupName;
+        $this->groupNames[] = $groupName;
+        $this->groupNames = array_unique($this->groupNames);
+        return $this;
     }
     
     public function getGroupNames()
@@ -92,7 +94,7 @@ class Agent
     public function tick()
     {
         // NOOP
-        if ($this->lastStatus < time() - 1) {
+        if ($this->lastStatus < time() - 10) {
             $this->lastStatus = time();
             $this->sendStatus();
         }
@@ -111,7 +113,8 @@ class Agent
             'type' => 'status',
             'from' => $this->getName(),
             'payload' => [
-                'name' => $this->getName()
+                'name' => $this->getName(),
+                'groups' => $this->groupNames
             ]
         ];
         $this->sendMessage($message);
@@ -149,14 +152,25 @@ class Agent
         switch ($data['type']) {
             case 'check_request':
                 $requestId = $data['payload']['requestId'];
+                $checkName = $data['payload']['check'];
                 $command = $data['payload']['command'];
                 $checkResult = $this->runCommand($command);
+                $measurementData = [];
+                foreach ($checkResult->getMeasurements() as $measurement) {
+                    $measurementData[] = [
+                        'name' => $measurement->getName(),
+                        'unit' => $measurement->getUnit(),
+                        'value' => $measurement->getValue(),
+                    ];
+                }
                 $message = [
                     'type' => 'check-response',
                     'from' => $this->getName(),
                     'payload' => [
                         'requestId' => $requestId,
-                        'statusCode' => $checkResult->getStatusCode()
+                        'check' => $checkName,
+                        'statusCode' => $checkResult->getStatusCode(),
+                        'measurements' => $measurementData
                     ]
                 ];
                 $this->sendMessage($message);

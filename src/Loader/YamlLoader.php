@@ -45,6 +45,12 @@ class YamlLoader
         if (isset($agentData['port'])) {
             $agent->setPort($agentData['port']);
         }
+        if (isset($agentData['groups'])) {
+            $groupNames = $agentData['groups'];
+            foreach ($groupNames as $groupName) {
+                $agent->addGroupName($groupName);
+            }
+        }
         
         $agent->setStompAddress($agentData['stomp']['address']);
         $agent->setStompUsername($agentData['stomp']['username']);
